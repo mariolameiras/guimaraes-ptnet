@@ -68,6 +68,55 @@ class IRCServer {
     this.clients = new Set();
     this.msgCount = 0;
     this.startedAt = now();
+    // modos por canal: '#guimaraes' -> Map<nickLower, {op, voice}>
+    this.channelModes = new Map();
+    // histórico real por canal: '#guimaraes' -> [{ts, nick, kind, text}]
+    this.history = new Map();
+  }
+
+  // -- modos de canal ---------------------------------------------------------
+
+  modesOf(key, nick) {
+    if (!this.channelModes.has(key)) this.channelModes.set(key, new Map());
+    const m = this.channelModes.get(key);
+    const k = String(nick).toLowerCase();
+    if (!m.has(k)) m.set(k, { op: false, voice: false });
+    return m.get(k);
+  }
+
+  dropModes(key, nick) {
+    const m = this.channelModes.get(key);
+    if (m) m.delete(String(nick).toLowerCase());
+  }
+
+  moveModes(key, from, to) {
+    const m = this.channelModes.get(key);
+    if (!m) return;
+    const fk = String(from).toLowerCase();
+    if (m.has(fk)) {
+      const v = m.get(fk);
+      m.delete(fk);
+      m.set(String(to).toLowerCase(), v);
+    }
+  }
+
+  // aplica +o/+v/-o/-v e anuncia a toda a gente (como um ircd real)
+  applyMode(channel, prefix, sign, letter, nick) {
+    const key = String(channel).toLowerCase();
+    const st = this.modesOf(key, nick);
+    if (letter === 'o') st.op = sign === '+';
+    if (letter === 'v') st.voice = sign === '+';
+    this.toChannel(key, `:${prefix} MODE ${channel} ${sign}${letter} ${nick}`);
+  }
+
+  // -- histórico -------------------------------------------------------------
+
+  record(key, entry) {
+    if (!this.history.has(key)) this.history.set(key, []);
+    const h = this.history.get(key);
+    h.push(entry);
+    const LIMIT = 80;
+    if (h.length > LIMIT) h.splice(0, h.length - LIMIT);
   }
 
   // -- connection lifecycle -------------------------------------------------
@@ -253,6 +302,8 @@ class IRCServer {
         if ([...c.channels].some((ch) => client.channels.has(ch))) this.send(c, line);
       }
       this.send(client, line);
+      // os modos @/+ acompanham o nick
+      for (const key of Object.keys(CHANNELS)) this.moveModes(key, old, nick);
     }
     this.tryRegister(client);
   }
@@ -313,19 +364,40 @@ class IRCServer {
     this.send(client, `:${SERVER_NAME} MODE ${channel} +nt`);
     this.names(client, channel);
 
-    if (client.nick) {
-      this.toChannel(key, `:${BOT_NICK}!bot@${BOT_HOST} PRIVMSG ${channel} :*** ${client.nick} (${client.user}@${client.host}) entrou no canal ${channel}`);
+    // histórico real do canal (com timestamps, ao estilo IRCv3 server-time)
+    const hist = this.history.get(key) || [];
+    if (hist.length) {
+      this.send(client, `:${SERVER_NAME} NOTICE ${client.nick} :*** Hist\u00f3rico do ${channel} \u2014 \u00faltimas ${hist.length} linha${hist.length === 1 ? '' : 's'}`);
+      for (const h of hist) {
+        const tag = `@time=${new Date(h.ts).toISOString()}`;
+        const uh = `${h.nick}!${h.user || '~web'}@${h.host || 'dialup-ptnet'}`;
+        if (h.kind === 'action') {
+          this.send(client, `${tag} :${h.nick}!hist@${BOT_HOST} PRIVMSG ${channel} :\u0001ACTION ${h.text}\u0001`);
+        } else if (h.kind === 'join') {
+          this.send(client, `${tag} :${uh} JOIN ${channel}`);
+        } else if (h.kind === 'part') {
+          this.send(client, `${tag} :${uh} PART ${channel}${h.text ? ' :' + h.text : ''}`);
+        } else if (h.kind === 'quit') {
+          this.send(client, `${tag} :${uh} QUIT :${h.text || 'Quit'}`);
+        } else {
+          this.send(client, `${tag} :${h.nick}!hist@${BOT_HOST} PRIVMSG ${channel} :${h.text}`);
+        }
+      }
+      this.send(client, `:${SERVER_NAME} NOTICE ${client.nick} :*** Fim do hist\u00f3rico \u2014 mensagens novas a seguir`);
     }
+
+    this.record(key, { ts: now(), nick: client.nick, user: client.user, host: client.host, kind: 'join', text: '' });
   }
 
   part(client, channel, reason) {
     const key = String(channel || '').toLowerCase();
     if (!client.channels.has(key)) return;
     client.channels.delete(key);
-    const why = reason ? ` (${cleanText(reason)})` : '';
-    this.toChannel(key, `:${this.prefix(client)} PART ${channel}${why ? ' :' + cleanText(reason) : ''}`);
-    this.send(client, `:${this.prefix(client)} PART ${channel}${why ? ' :' + cleanText(reason) : ''}`);
-    this.toChannel(key, `:${BOT_NICK}!bot@${BOT_HOST} PRIVMSG ${channel} :*** ${client.nick} (${client.user}@${client.host}) saiu do canal ${channel}${why}`);
+    this.dropModes(key, client.nick);
+    const clean = reason ? cleanText(reason) : '';
+    this.toChannel(key, `:${this.prefix(client)} PART ${channel}${clean ? ' :' + clean : ''}`);
+    this.send(client, `:${this.prefix(client)} PART ${channel}${clean ? ' :' + clean : ''}`);
+    this.record(key, { ts: now(), nick: client.nick, user: client.user, host: client.host, kind: 'part', text: clean });
   }
 
   quit(client, reason) {
@@ -335,10 +407,11 @@ class IRCServer {
     client.channels.clear();
     this.clients.delete(client);
     if (client.registered) {
-      const why = ` (${cleanText(reason || 'Client Quit')})`;
+      const clean = cleanText(reason || 'Client Quit');
       for (const ch of channels) {
-        this.toChannel(ch, `:${this.prefix(client)} QUIT :${cleanText(reason || 'Client Quit')}`);
-        this.toChannel(ch, `:${BOT_NICK}!bot@${BOT_HOST} PRIVMSG ${ch} :*** ${client.nick} (${client.user}@${client.host}) saiu do canal ${ch}${why}`);
+        this.dropModes(ch, client.nick);
+        this.toChannel(ch, `:${this.prefix(client)} QUIT :${clean}`);
+        this.record(ch, { ts: now(), nick: client.nick, user: client.user, host: client.host, kind: 'quit', text: clean });
       }
     }
     try {
@@ -351,7 +424,12 @@ class IRCServer {
   names(client, channel) {
     const key = String(channel || '').toLowerCase();
     if (!CHANNELS[key]) return;
-    const list = this.members(key).map((c) => c.nick);
+    // prefixos @/+ vindos do estado real do canal (visíveis a todos, como no IRC)
+    const list = this.members(key).map((c) => {
+      const st = this.modesOf(key, c.nick);
+      return (st.op ? '@' : st.voice ? '+' : '') + c.nick;
+    });
+    // o BotDoJantar é operador do canal — aparece com @ como manda a tradição.
     this.send(client, `:${SERVER_NAME} 353 ${client.nick} = ${channel} :@${BOT_NICK} ${list.join(' ')}`);
     this.send(client, `:${SERVER_NAME} 366 ${client.nick} ${channel} :End of /NAMES list.`);
   }
@@ -401,9 +479,31 @@ class IRCServer {
     if (!target) return;
     const key = target.toLowerCase();
     if (CHANNELS[key]) {
-      // Channel modes are cosmetic in this clone: we only echo them back.
-      const modes = params.slice(1).join(' ');
-      if (modes) this.toChannel(key, `:${this.prefix(client)} MODE ${target} ${modes}`);
+      const modes = params[1] || '';
+      if (!modes) return;
+      // aplica +o/+v/-o/-v de verdade; outros modos são ecoados
+      const args = params.slice(2);
+      let sign = '+';
+      let argIdx = 0;
+      let simple = '';
+      for (const ch of modes) {
+        if (ch === '+' || ch === '-') {
+          if (simple) {
+            this.toChannel(key, `:${this.prefix(client)} MODE ${target} ${simple}`);
+            simple = '';
+          }
+          sign = ch;
+          continue;
+        }
+        if (ch === 'o' || ch === 'v') {
+          const nick = sanitizeNick(args[argIdx++] || '');
+          if (!nick) continue;
+          this.applyMode(target, this.prefix(client), sign, ch, nick);
+        } else {
+          simple += (simple ? '' : sign) + ch;
+        }
+      }
+      if (simple) this.toChannel(key, `:${this.prefix(client)} MODE ${target} ${simple}`);
       return;
     }
     this.send(client, `:${SERVER_NAME} 221 ${client.nick} +`);
@@ -443,6 +543,14 @@ class IRCServer {
 
     this.toChannel(key, `:${this.prefix(client)} PRIVMSG ${target} :${text}`, client);
     this.send(client, `:${this.prefix(client)} PRIVMSG ${target} :${text}`);
+    // grava no histórico real do canal (para quem entrar depois)
+    const isAction = text.startsWith('\x01ACTION ');
+    this.record(key, {
+      ts: t,
+      nick: client.nick,
+      kind: isAction ? 'action' : 'msg',
+      text: isAction ? text.replace(/^\x01ACTION /, '').replace(/\x01$/, '') : text,
+    });
 
     if (text.startsWith('!')) this.botCommand(client, target, text);
   }
@@ -450,11 +558,15 @@ class IRCServer {
   // -- the bot --------------------------------------------------------------
 
   say(channel, text) {
-    this.toChannel(channel, `:${BOT_NICK}!bot@${BOT_HOST} PRIVMSG ${channel} :${text}`);
+    const key = channel.toLowerCase();
+    this.toChannel(key, `:${BOT_NICK}!bot@${BOT_HOST} PRIVMSG ${channel} :${text}`);
+    this.record(key, { ts: now(), nick: BOT_NICK, kind: 'msg', text });
   }
 
   action(channel, text) {
-    this.toChannel(channel, `:${BOT_NICK}!bot@${BOT_HOST} PRIVMSG ${channel} :\x01ACTION ${text}\x01`);
+    const key = channel.toLowerCase();
+    this.toChannel(key, `:${BOT_NICK}!bot@${BOT_HOST} PRIVMSG ${channel} :\x01ACTION ${text}\x01`);
+    this.record(key, { ts: now(), nick: BOT_NICK, kind: 'action', text });
   }
 
   botCommand(client, channel, text) {
@@ -494,7 +606,7 @@ class IRCServer {
           break;
         }
         this.action(channel, `* ${who} agora tem @ (op) em ${channel}`);
-        this.toChannel(channel, `:${BOT_NICK}!bot@${BOT_HOST} MODE ${channel} +o ${who}`);
+        this.applyMode(channel, `${BOT_NICK}!bot@${BOT_HOST}`, '+', 'o', who);
         break;
       }
 
@@ -505,12 +617,12 @@ class IRCServer {
           break;
         }
         this.action(channel, `* ${who} agora tem + (voice) em ${channel}`);
-        this.toChannel(channel, `:${BOT_NICK}!bot@${BOT_HOST} MODE ${channel} +v ${who}`);
+        this.applyMode(channel, `${BOT_NICK}!bot@${BOT_HOST}`, '+', 'v', who);
         break;
       }
 
       case '!jantar':
-        reply('12ª Janta do #guimaraes da PTNET — 19 de Dezembro de 1998, Restaurante Ninho do Falcão, Guimarães. Traz apetite e modem.');
+        reply('12ª Janta do #guimaraes da PTNET — 19 de Dezembro de 2026, Restaurante O Pinguim, Guimarães. Traz apetite e modem.');
         break;
 
       case '!ptnet':

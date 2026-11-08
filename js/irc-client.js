@@ -52,9 +52,16 @@
     return n < 10 ? '0' + n : '' + n;
   }
 
-  function timestamp() {
-    var d = new Date();
-    return pad(d.getHours()) + ':' + pad(d.getMinutes());
+  function timestamp(when) {
+    var d = when || new Date();
+    var hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    if (!when) return hm;
+    // mensagens de outro dia mostram a data também (histórico)
+    var today = new Date();
+    if (d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()) {
+      return hm;
+    }
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' ' + hm;
   }
 
   function guestNick() {
@@ -494,6 +501,18 @@
   // protocolo
 
   function handleLine(raw) {
+    // tags IRCv3 (@time=...) — usadas no replay do histórico
+    var when = null;
+    if (raw.charAt(0) === '@') {
+      var tagSp = raw.indexOf(' ');
+      var tags = raw.slice(1, tagSp);
+      raw = raw.slice(tagSp + 1);
+      var tm = tags.match(/time=([^;\s]+)/);
+      if (tm) {
+        var d = new Date(tm[1]);
+        if (!isNaN(d.getTime())) when = d;
+      }
+    }
     var prefix = null;
     var rest = raw;
     if (rest.charAt(0) === ':') {
@@ -517,7 +536,7 @@
     }
     var cmd = (params.shift() || '').toUpperCase();
     var nick = prefix ? prefix.split('!')[0] : '';
-    var host = prefix ? (prefix.split('@')[1] || '') : '';
+    var userhost = prefix ? (prefix.split('!')[1] || '') : '';
     var tail = params[params.length - 1] || '';
 
     switch (cmd) {
@@ -611,6 +630,11 @@
           line('<span class="sys">*** Agora falas em ' + esc(params[0]) + '</span>');
         } else {
           upsertName(nick);
+          line(
+            '<span class="sys">*** ' + esc(nick) + ' (' + esc(userhost) + ') entrou no canal ' + esc(params[0]) + '</span>',
+            null,
+            when
+          );
           beep('join');
         }
         renderNicks();
@@ -650,6 +674,21 @@
           state.channel = null;
         } else if (state.channel) {
           removeName(nick);
+          if (cmd === 'PART') {
+            line(
+              '<span class="sys">*** ' + esc(nick) + ' (' + esc(userhost) + ') saiu do canal ' + esc(params[0]) +
+              (params[1] ? ' (' + esc(params[1]) + ')' : '') + '</span>',
+              null,
+              when
+            );
+          } else {
+            line(
+              '<span class="sys">*** ' + esc(nick) + ' (' + esc(userhost) + ') saiu da PTnet' +
+              (tail ? ' (' + esc(tail) + ')' : '') + '</span>',
+              null,
+              when
+            );
+          }
           beep('out');
         }
         renderNicks();
@@ -665,7 +704,7 @@
         if (nickIsMe) {
           line('<span class="sys">*** Agora &eacute;s conhecido como ' + esc(newNick) + '</span>');
         } else {
-          line('<span class="sys">*** ' + esc(nick) + ' agora chama-se ' + esc(newNick) + '</span>');
+          line('<span class="sys">*** ' + esc(nick) + ' agora chama-se ' + esc(newNick) + '</span>', null, when);
         }
         renderNicks();
         updateStatus();
@@ -677,12 +716,12 @@
         var isAction = msg.charAt(0) === '\x01' && msg.slice(1, 7) === 'ACTION';
         if (isAction) {
           var act = msg.slice(7).replace(/\x01$/, '').trim();
-          line('<span class="action">* ' + esc(nick) + ' ' + esc(act) + '</span>');
+          line('<span class="action">* ' + esc(nick) + ' ' + esc(act) + '</span>', null, when);
         } else {
           var cls = nick === BOT_NICK ? 'bot' : '';
-          line('<span class="nick">' + esc(nick) + '</span>: ' + esc(msg), cls);
+          line('<span class="nick">' + esc(nick) + '</span>: ' + esc(msg), cls, when);
         }
-        if (nick.toLowerCase() !== state.nick.toLowerCase()) beep('msg');
+        if (nick.toLowerCase() !== state.nick.toLowerCase() && !when) beep('msg');
         break;
 
       case 'TOPIC':
@@ -865,6 +904,14 @@
     els.sound.classList.toggle('on', state.soundOn);
     els.sound.textContent = state.soundOn ? '\u266A som ON' : '\u266A som';
   });
+
+  // mostrar/esconder a lista de nicks (útil em mobile)
+  var nickToggle = $('mirc-nicktoggle');
+  if (nickToggle) {
+    nickToggle.addEventListener('click', function () {
+      els.mirc.classList.toggle('show-nicks');
+    });
+  }
 
   $('mirc-min').addEventListener('click', function () {
     els.mirc.classList.toggle('hidden-body');

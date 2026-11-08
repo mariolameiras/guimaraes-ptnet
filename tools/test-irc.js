@@ -81,8 +81,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   b.send('JOIN #guimaraes');
   await b.wait(/ 366 bob #guimaraes /);
-  await a.wait(/BotDoJantar.*\*\*\* bob .* entrou no canal #guimaraes/);
-  console.log('ok: join notice from BotDoJantar');
+  await a.wait(/:bob!~web@dialup-ptnet JOIN #guimaraes/);
+  console.log('ok: join é evento de sistema (sem mensagem do bot)');
 
   // mensagem
   a.send('PRIVMSG #guimaraes :ola malta');
@@ -103,6 +103,28 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await b.wait(/ACTION \* alice agora tem @ \(op\) em #guimaraes/);
   console.log('ok: !slap / !op / !voice (+ MODE broadcast)');
 
+  // quem entra depois vê os modos @/+ no NAMES (como no IRC real)
+  const d = client('d');
+  await d.open();
+  d.send('NICK diana');
+  d.send('USER web 0 * :D');
+  await d.wait(/ 001 diana /);
+  d.send('JOIN #guimaraes');
+  const names353 = await d.wait(/ 353 diana = #guimaraes :/);
+  assert.ok(/@BotDoJantar @?alice/.test(names353), 'alice deve ter @: ' + names353);
+  assert.ok(/@bob|\+bob/.test(names353), 'bob deve ter @ ou +: ' + names353);
+  console.log('ok: novos utilizadores vêem os modos no NAMES:', names353.split('353 diana = #guimaraes :')[1]);
+
+  // histórico: diana deve ver as mensagens anteriores com @time
+  const histNotice = await d.wait(/NOTICE diana :\*\*\* Hist/);
+  assert.ok(histNotice.includes('Histórico'), 'aviso de histórico');
+  const histLine = await d.wait(/@time=\d{4}-\d{2}-\d{2}T.*PRIVMSG #guimaraes :ola malta/);
+  assert.ok(histLine.startsWith('@time='), 'linha de histórico com tag server-time');
+  const histSlap = await d.wait(/@time=.*ACTION \* alice dá .* a bob/);
+  assert.ok(histSlap.startsWith('@time='), 'acção no histórico com tag');
+  console.log('ok: replay do histórico com timestamps (@time)');
+  d.close();
+
   // mudança de tópico
   a.send('TOPIC #guimaraes :bem vindo ao #guimaraes - 12a janta 2026 (confirmem!)');
   await b.wait(/TOPIC #guimaraes :bem vindo ao #guimaraes - 12a janta 2026 \(confirmem!\)/);
@@ -117,8 +139,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   // part
   a.send('PART #guimaraes');
-  await b.wait(/BotDoJantar.*\*\*\* alice2 .* saiu do canal #guimaraes/);
-  console.log('ok: part notice');
+  await b.wait(/:alice2!~web@dialup-ptnet PART #guimaraes/);
+  console.log('ok: part é evento de sistema');
 
   // nick duplicado rejeitado
   const c = client('c');
@@ -140,8 +162,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   c.send('JOIN #guimaraes');
   await c.wait(/ 366 carol #guimaraes /);
   c.close();
-  await b.wait(/BotDoJantar.*\*\*\* carol .* saiu do canal #guimaraes/);
-  console.log('ok: quit notice');
+  await b.wait(/:carol!~web@dialup-ptnet QUIT :/);
+  console.log('ok: quit é evento de sistema');
 
   // stats
   const stats = await (await fetch('http://localhost:8099/healthz')).json();

@@ -23,7 +23,10 @@
 
   <!-- O BANNER -->
   <header class="site-head">
-    <img src="img/banner.png" width="1600" height="380" alt="12ª Janta do #guimaraes da PTnet">
+    <picture>
+      <source media="(max-width: 720px)" srcset="img/banner-mobile.png">
+      <img src="img/banner.png" width="1600" height="380" alt="12ª Janta do #guimaraes da PTnet">
+    </picture>
   </header>
 
   <div class="marquee">
@@ -92,11 +95,12 @@
           <div class="mirc-toolbar">
             <button class="tool-btn" data-cmd="/join #guimaraes">Entrar no #guimaraes</button>
             <button class="tool-btn" data-cmd="/part">Part</button>
-            <button class="tool-btn" data-cmd="/names">Names</button>
-            <button class="tool-btn" data-cmd="/who">Who</button>
-            <button class="tool-btn" data-cmd="/topic">Topic</button>
+            <button class="tool-btn hide-sm" data-cmd="/names">Names</button>
+            <button class="tool-btn hide-sm" data-cmd="/who">Who</button>
+            <button class="tool-btn hide-sm" data-cmd="/topic">Topic</button>
             <button class="tool-btn" data-cmd="!help">!help</button>
             <span class="spacer"></span>
+            <button class="tool-btn" id="mirc-nicktoggle" title="Mostrar/esconder a lista de nicks">&#9776; nicks</button>
             <button class="tool-btn" id="mirc-sound" title="Som de entrada/sa&iacute;da">&#9834; som</button>
           </div>
 

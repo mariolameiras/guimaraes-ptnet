@@ -10,17 +10,57 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const W = 1600;
-const H = 380;
 const DSF = 2;
-const OUT = path.join(__dirname, '..', 'img', 'banner.png');
 const PORT = 9391;
 
-const HTML = `<!DOCTYPE html>
+// Duas variantes: desktop (1600x380) e mobile (800x300, texto maior em proporção).
+const VARIANTS = [
+  {
+    out: path.join(__dirname, '..', 'img', 'banner.png'),
+    w: 1600,
+    h: 380,
+    title: 128,
+    titleBlur: 26,
+    sub: 58,
+    subBlur: 16,
+    meta: 17,
+    tag: 15,
+    tagTop: 40,
+    pad: 26,
+    grid: 48,
+    flareX: 248,
+    flareY: 92,
+    flareSize: 260,
+    showMeta: true,
+    stars: 26,
+  },
+  {
+    out: path.join(__dirname, '..', 'img', 'banner-mobile.png'),
+    w: 800,
+    h: 300,
+    title: 88,
+    titleBlur: 18,
+    sub: 42,
+    subBlur: 12,
+    meta: 14,
+    tag: 12,
+    tagTop: 28,
+    pad: 18,
+    grid: 32,
+    flareX: 124,
+    flareY: 70,
+    flareSize: 180,
+    showMeta: false,
+    stars: 16,
+  },
+];
+
+function makeHTML(c) {
+  return `<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: ${W}px; height: ${H}px; overflow: hidden; }
+  html, body { width: ${c.w}px; height: ${c.h}px; overflow: hidden; }
   body {
     font-family: 'Liberation Sans', 'DejaVu Sans', Arial, sans-serif;
     background:
@@ -36,7 +76,7 @@ const HTML = `<!DOCTYPE html>
     background-image:
       linear-gradient(rgba(110, 150, 220, 0.055) 1px, transparent 1px),
       linear-gradient(90deg, rgba(110, 150, 220, 0.055) 1px, transparent 1px);
-    background-size: 48px 48px;
+    background-size: ${c.grid}px ${c.grid}px;
     -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 45%, #000 30%, transparent 75%);
     mask-image: radial-gradient(ellipse 70% 80% at 50% 45%, #000 30%, transparent 75%);
   }
@@ -50,12 +90,12 @@ const HTML = `<!DOCTYPE html>
     position: absolute; left: 8%; right: 8%; height: 1px;
     background: linear-gradient(90deg, transparent, rgba(214, 178, 96, .5) 20%, rgba(214, 178, 96, .85) 50%, rgba(214, 178, 96, .5) 80%, transparent);
   }
-  .rule-top { top: 26px; }
-  .rule-bottom { bottom: 26px; }
+  .rule-top { top: ${c.pad}px; }
+  .rule-bottom { bottom: ${c.pad}px; }
 
   .tag {
-    position: absolute; top: 40px; left: 8%;
-    font-size: 15px; font-weight: bold; letter-spacing: 6px;
+    position: absolute; top: ${c.tagTop}px; left: 8%;
+    font-size: ${c.tag}px; font-weight: bold; letter-spacing: 6px;
     color: #d6b260;
   }
   .tag small { color: #7d8aa8; font-weight: normal; letter-spacing: 3px; }
@@ -68,15 +108,15 @@ const HTML = `<!DOCTYPE html>
   .title-glow {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
-    font-size: 128px; font-weight: bold; font-style: italic;
+    font-size: ${c.title}px; font-weight: bold; font-style: italic;
     letter-spacing: 4px; text-transform: uppercase;
     color: rgba(96, 150, 255, 0.4);
-    filter: blur(26px);
+    filter: blur(${c.titleBlur}px);
   }
 
   .title {
     position: relative;
-    font-size: 128px; font-weight: bold; font-style: italic;
+    font-size: ${c.title}px; font-weight: bold; font-style: italic;
     letter-spacing: 4px; text-transform: uppercase;
     background: linear-gradient(
       180deg,
@@ -95,10 +135,10 @@ const HTML = `<!DOCTYPE html>
 
   /* ---------- subtítulo cobre ---------- */
   .sub {
-    margin-top: 18px;
+    margin-top: 14px;
     position: relative;
-    font-size: 58px; font-weight: bold;
-    letter-spacing: 10px; text-transform: uppercase;
+    font-size: ${c.sub}px; font-weight: bold;
+    letter-spacing: 8px; text-transform: uppercase;
     background: linear-gradient(180deg, #ffe9dc 0%, #f5b899 40%, #e8795a 70%, #f7c9ac 100%);
     -webkit-background-clip: text;
     background-clip: text;
@@ -109,26 +149,26 @@ const HTML = `<!DOCTYPE html>
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
     color: rgba(232, 121, 90, 0.35);
-    filter: blur(16px);
+    filter: blur(${c.subBlur}px);
   }
 
   .meta {
-    margin-top: 20px;
-    font-size: 17px; letter-spacing: 5px;
+    margin-top: 16px;
+    font-size: ${c.meta}px; letter-spacing: 4px;
     color: #9fb0d0; text-transform: uppercase;
   }
-  .meta b { color: #e8d9b0; font-weight: bold; letter-spacing: 5px; }
+  .meta b { color: #e8d9b0; font-weight: bold; letter-spacing: 4px; }
 
   /* ---------- lens flare ---------- */
   .flare { position: absolute; inset: 0; pointer-events: none; }
   .flare .core {
-    position: absolute; left: 248px; top: 92px;
-    width: 260px; height: 260px; border-radius: 50%;
+    position: absolute; left: ${c.flareX}px; top: ${c.flareY}px;
+    width: ${c.flareSize}px; height: ${c.flareSize}px; border-radius: 50%;
     background: radial-gradient(circle, rgba(255,252,235,.95) 0%, rgba(255,240,200,.35) 18%, transparent 55%);
     transform: translate(-50%, -50%);
   }
   .flare .streak {
-    position: absolute; left: 0; right: 0; top: 92px; height: 3px;
+    position: absolute; left: 0; right: 0; top: ${c.flareY}px; height: 3px;
     background: linear-gradient(90deg, transparent, rgba(255,250,220,.5) 30%, rgba(255,250,220,.75) 50%, rgba(255,250,220,.5) 70%, transparent);
     filter: blur(.5px);
   }
@@ -142,9 +182,9 @@ const HTML = `<!DOCTYPE html>
 <body>
   <div class="grid"></div>
   <div class="stars">
-    ${Array.from({ length: 26 }, () => {
-      const x = Math.round(Math.random() * (W - 4));
-      const y = Math.round(Math.random() * (H - 4));
+    ${Array.from({ length: c.stars }, () => {
+      const x = Math.round(Math.random() * (c.w - 4));
+      const y = Math.round(Math.random() * (c.h - 4));
       const o = (0.25 + Math.random() * 0.45).toFixed(2);
       return `<i style="left:${x}px;top:${y}px;opacity:${o}"></i>`;
     }).join('\n    ')}
@@ -162,7 +202,7 @@ const HTML = `<!DOCTYPE html>
       <div class="sub-glow">do #guimaraes</div>
       <div class="sub">do #guimaraes</div>
     </div>
-    <div class="meta"><b>19 de Dezembro de 2026</b> &nbsp;&middot;&nbsp; Restaurante O Pinguim &nbsp;&middot;&nbsp; Guimar&atilde;es</div>
+    ${c.showMeta ? '<div class="meta"><b>19 de Dezembro de 2026</b> &nbsp;&middot;&nbsp; Restaurante O Pinguim &nbsp;&middot;&nbsp; Guimar&atilde;es</div>' : ''}
   </div>
 
   <div class="flare">
@@ -171,13 +211,11 @@ const HTML = `<!DOCTYPE html>
   </div>
   <div class="vignette"></div>
 </body></html>`;
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 (async () => {
-  const tmp = path.join(os.tmpdir(), `banner-${Date.now()}.html`);
-  fs.writeFileSync(tmp, HTML);
-
   const chrome = spawn('google-chrome-stable', [
     '--headless=new',
     `--remote-debugging-port=${PORT}`,
@@ -218,19 +256,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
 
   await cmd('Page.enable');
-  await cmd('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: DSF, mobile: false });
-  await cmd('Page.navigate', { url: 'file://' + tmp });
-  // espera as fontes e gradientes assentarem
-  await sleep(1200);
+  for (const c of VARIANTS) {
+    const tmp = path.join(os.tmpdir(), `banner-${c.w}x${c.h}-${Date.now()}.html`);
+    fs.writeFileSync(tmp, makeHTML(c));
+    await cmd('Emulation.setDeviceMetricsOverride', { width: c.w, height: c.h, deviceScaleFactor: DSF, mobile: false });
+    await cmd('Page.navigate', { url: 'file://' + tmp });
+    // espera as fontes e gradientes assentarem
+    await sleep(1200);
 
-  const shot = await cmd('Page.captureScreenshot', { format: 'png' });
-  fs.mkdirSync(path.dirname(OUT), { recursive: true });
-  fs.writeFileSync(OUT, Buffer.from(shot.result.data, 'base64'));
-  console.log('wrote', OUT, `${W}x${H} @${DSF}x`);
+    const shot = await cmd('Page.captureScreenshot', { format: 'png' });
+    fs.mkdirSync(path.dirname(c.out), { recursive: true });
+    fs.writeFileSync(c.out, Buffer.from(shot.result.data, 'base64'));
+    console.log('wrote', c.out, `${c.w}x${c.h} @${DSF}x`);
+    fs.unlinkSync(tmp);
+  }
 
   ws.close();
   chrome.kill('SIGKILL');
-  fs.unlinkSync(tmp);
   process.exit(0);
 })().catch((e) => {
   console.error('FAILED:', e);

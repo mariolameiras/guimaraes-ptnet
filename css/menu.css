@@ -172,3 +172,79 @@ a:hover {
   background: none;
   color: #fff;
 }
+
+/* --------------------------------------------------------------------------
+   menu em faixa (mobile): o iframe fica baixo e largo — navegacão horizontal
+   e blocos acessórios escondidos. Em desktop o iframe é alto e estreito,
+   portanto esta regra (max-height) não se aplica.
+   -------------------------------------------------------------------------- */
+
+@media (max-height: 400px) {
+  .side {
+    padding: 6px 8px 8px;
+  }
+  .side-head {
+    padding: 4px 6px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+  }
+  .side-head .net {
+    font-size: 16px;
+    text-shadow: 0 0 8px rgba(127, 176, 232, 0.4);
+  }
+  .side-head .sub {
+    font-size: 8px;
+    margin-top: 0;
+  }
+  .block {
+    margin-bottom: 6px;
+    padding-bottom: 5px;
+  }
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .nav li {
+    flex: 1 1 28%;
+  }
+  .nav a {
+    text-align: center;
+    border: 1px solid #26324f;
+    border-radius: 2px;
+    padding: 4px 2px;
+    font-size: 11px;
+  }
+  .nav a:hover {
+    border-left-color: #e8795a;
+  }
+  .online {
+    font-size: 11px;
+    margin-bottom: 3px;
+  }
+  .online b {
+    font-size: 13px;
+  }
+  .nicks {
+    max-height: 34px;
+    overflow: hidden;
+  }
+  .nicks span {
+    font-size: 9px;
+    padding: 0 4px;
+  }
+  .block .small {
+    display: none;
+  }
+  .side-btn {
+    padding: 4px 0;
+    font-size: 12px;
+  }
+  .block-cmds,
+  .block-webring {
+    display: none;
+  }
+}
