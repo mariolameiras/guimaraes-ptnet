@@ -1,0 +1,187 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="pt-PT">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta name="description" content="12ª Janta do #guimaraes da PTnet — 19 de Dezembro de 2026 — Restaurante O Pinguim, Guimarães">
+<meta name="keywords" content="ptnet, guimaraes, janta, irc, mirc, o pinguim, 2026">
+<meta name="author" content="O pessoal do #guimaraes">
+<title>*** 12ª JANTA do #GUIMARAES da PTNET ***</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<link rel="icon" type="image/png" href="img/favicon.png">
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- barra de estado tipo browser -->
+  <div class="topbar">
+    <span class="blink">&#9679;</span> Documento: Conclu&iacute;do &nbsp;|&nbsp;
+    PTnet: 100% &nbsp;|&nbsp;
+    <span id="clock">00:00:00</span> &nbsp;|&nbsp;
+    <span class="blink">NOVO!</span>
+  </div>
+
+  <!-- O BANNER -->
+  <header class="site-head">
+    <img src="img/banner.png" width="1600" height="380" alt="12ª Janta do #guimaraes da PTnet">
+  </header>
+
+  <div class="marquee">
+    <span>*** BEM-VINDOS &Agrave; 12&ordf; JANTA DO #GUIMARAES DA PTNET *** 19 DE DEZEMBRO DE 2026 *** RESTAURANTE O PINGUIM, GUIMAR&Atilde;ES *** O CHAT EST&Aacute; NO FIM DA P&Aacute;GINA *** N&Atilde;O TE ESQUE&Ccedil;AS DE MUDAR O NICK *** /join #guimaraes ***</span>
+  </div>
+
+  <div class="page">
+
+    <!-- ============ MENU LATERAL (iframe) ============ -->
+    <aside class="menu-col">
+      <iframe src="menu.html" title="Menu de navega&ccedil;&atilde;o" scrolling="auto"></iframe>
+    </aside>
+
+    <!-- ============ CONTE&Uacute;DO ============ -->
+    <main class="main">
+
+      <!-- ============== A JANTA ============== -->
+      <section class="sec" id="janta">
+        <h2 class="sec-h">A Janta</h2>
+        <div class="sec-body">
+          <p class="lead">
+            &Eacute; com enorme prazer que o pessoal do <b>#guimaraes</b> anuncia a
+            <b>12&ordf; Janta do #guimaraes da PTnet</b>. Depois de onze jantas, tr&ecirc;s
+            amea&ccedil;as de ban e umas quantas discuss&otilde;es sobre futebol, voltamos
+            &agrave; mesa.
+          </p>
+          <ul class="facts">
+            <li><span>Data</span>19 de Dezembro de 2026 (s&aacute;bado)</li>
+            <li><span>Hora</span>20h30 (o pessoal chega &agrave;s 21h, como sempre)</li>
+            <li><span>Local</span>Restaurante O Pinguim, Guimar&atilde;es</li>
+            <li><span>Pre&ccedil;o</span>35&euro; por pessoa, bebidas &agrave; parte</li>
+          </ul>
+          <p class="warn">
+            <b>AVISO:</b> confirma a presen&ccedil;a no canal <b>#guimaraes</b>.
+            Quem n&atilde;o aparecer na lista, come &agrave; porta.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============== LINKS ============== -->
+      <section class="sec" id="links">
+        <h2 class="sec-h">Links recomendados</h2>
+        <div class="sec-body">
+          <ul class="links">
+            <li><a href="https://www.ptnet.org" target="_blank" rel="noopener">PTnet</a> &mdash; a maior rede de IRC Portuguesa, desde 1997</li>
+            <li><a href="https://www.mirc.com" target="_blank" rel="noopener">mIRC</a> &mdash; o melhor cliente de IRC do mundo</li>
+            <li><a href="https://pt.wikipedia.org/wiki/Guimar%C3%A3es" target="_blank" rel="noopener">Guimar&atilde;es</a> &mdash; a cidade ber&ccedil;o</li>
+            <li><a href="https://www.winamp.com" target="_blank" rel="noopener">Winamp</a> &mdash; it really whips the llama's ass</li>
+            <li><a href="#chat">O chat</a> &mdash; est&aacute; l&aacute; em baixo, no fim da p&aacute;gina</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ============== O CLONE DO mIRC (no fim) ============== -->
+      <section class="sec" id="chat">
+        <h2 class="sec-h">O Chat &mdash; mIRC na PTnet</h2>
+
+        <div class="mirc">
+          <div class="mirc-titlebar">
+            <span class="mirc-icon">&#128421;</span>
+            <span class="title" id="mirc-title">mIRC &mdash; Status &mdash; PTnet</span>
+            <button class="win-btn" id="mirc-min" title="Minimizar">_</button>
+            <button class="win-btn" id="mirc-close" title="Sair">&#10005;</button>
+          </div>
+
+          <div class="mirc-toolbar">
+            <button class="tool-btn" data-cmd="/join #guimaraes">Entrar no #guimaraes</button>
+            <button class="tool-btn" data-cmd="/part">Part</button>
+            <button class="tool-btn" data-cmd="/names">Names</button>
+            <button class="tool-btn" data-cmd="/who">Who</button>
+            <button class="tool-btn" data-cmd="/topic">Topic</button>
+            <button class="tool-btn" data-cmd="!help">!help</button>
+            <span class="spacer"></span>
+            <button class="tool-btn" id="mirc-sound" title="Som de entrada/sa&iacute;da">&#9834; som</button>
+          </div>
+
+          <div class="mirc-body">
+            <div class="mirc-text" id="mirc-text" aria-live="polite"></div>
+            <div class="mirc-nicklist" id="mirc-nicks" title="Duplo clique num nick para preencher o comando"></div>
+          </div>
+
+          <div class="mirc-input">
+            <input type="text" id="mirc-input" maxlength="450" autocomplete="off" spellcheck="false"
+                   placeholder="Escreve aqui... (Enter para enviar, /nick para mudar o nick, !help para os comandos)">
+            <button id="mirc-send">Enviar</button>
+          </div>
+
+          <div class="mirc-status">
+            <span class="mirc-stat"><span class="online-dot" id="net-dot"></span><span id="net-status">a ligar...</span></span>
+            <span class="mirc-stat">Online agora: <b id="online-count">0</b></span>
+            <span class="mirc-stat">Nick: <input class="nick-edit" id="nick-input" maxlength="16" value=""></span>
+            <span class="mirc-stat" id="lag-panel">Lag: --ms</span>
+            <span class="mirc-stat" id="chan-count">sem canal</span>
+          </div>
+
+          <div class="mirc-help">
+            Comandos r&aacute;pidos:
+            <code data-cmd="/nick">/nick</code>
+            <code data-cmd="/join">/join</code>
+            <code data-cmd="/me">/me</code>
+            <code data-cmd="/topic">/topic</code>
+            <code data-cmd="/whois">/whois</code>
+            <code data-cmd="/help">/help</code>
+            <code data-cmd="!slap">!slap &lt;nick&gt;</code>
+            <code data-cmd="!op">!op &lt;nick&gt;</code>
+            <code data-cmd="!voice">!voice &lt;nick&gt;</code>
+            &mdash; clica para preencher.
+          </div>
+        </div>
+
+        <p class="chat-note">
+          Entras como <b>guest</b> &mdash; muda o nick com <b>/nick</b> e entra no canal com
+          <b>/join #guimaraes</b>. O <b>@BotDoJantar</b> &eacute; operador e responde aos comandos.
+          S&oacute; aparecem pessoas que est&atilde;o realmente nesta p&aacute;gina.
+        </p>
+      </section>
+
+    </main>
+
+  </div><!-- /page -->
+
+  <!-- ============== RODAPÉ ============== -->
+  <footer class="footer">
+    <div class="badges">
+      <img src="img/badge-netnow.png" width="88" height="31" alt="Netscape Now!">
+      <img src="img/badge-ie5.png" width="88" height="31" alt="Internet Explorer 5.0">
+      <img src="img/badge-notepad.png" width="88" height="31" alt="Made with Notepad">
+      <img src="img/badge-view800.png" width="88" height="31" alt="Best viewed 800x600">
+      <img src="img/badge-y2k.png" width="88" height="31" alt="Y2K compliant">
+      <img src="img/badge-winamp.png" width="88" height="31" alt="Winamp">
+      <img src="img/badge-ptnet.png" width="88" height="31" alt="PTnet IRC Network">
+      <img src="img/badge-janta.png" width="88" height="31" alt="#guimaraes 12ª Janta">
+    </div>
+    <p class="copy">
+      &copy; 2026 O pessoal do #guimaraes. Todos os direitos reservados.<br>
+      P&aacute;gina feita com Notepad, muito caf&eacute; e um modem emprestado.
+    </p>
+  </footer>
+
+</div><!-- /shell -->
+
+<!-- popup -->
+<div class="popup" id="popup" hidden>
+  <div class="popup-bar">
+    <span>Mensagem da Internet</span>
+    <button class="win-btn" id="popup-close" style="width:16px;height:14px;">&#10005;</button>
+  </div>
+  <div class="popup-body">
+    <div class="popup-ico">&#128231;</div>
+    <p id="popup-text">Tens 1 nova mensagem!</p>
+  </div>
+  <div class="popup-actions">
+    <button id="popup-ok">OK</button>
+  </div>
+</div>
+
+<script src="js/irc-core.js"></script>
+<script src="js/irc-client.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

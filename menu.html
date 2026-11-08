@@ -1,0 +1,122 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="pt-PT">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>Menu</title>
+<link rel="stylesheet" type="text/css" href="css/menu.css">
+</head>
+<body>
+
+<div class="side">
+
+  <div class="side-head">
+    <span class="net">PTnet</span>
+    <span class="sub">IRC Network</span>
+  </div>
+
+  <div class="block">
+    <h4>&raquo; Navega&ccedil;&atilde;o</h4>
+    <ul class="nav">
+      <li><a href="#janta" data-scroll="janta">A Janta</a></li>
+      <li><a href="#links" data-scroll="links">Links</a></li>
+      <li><a href="#chat" data-scroll="chat">Chat (mIRC)</a></li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h4>&raquo; Online agora</h4>
+    <div class="online">
+      <span class="dot"></span>
+      <b id="menu-online">0</b> pessoas nesta p&aacute;gina
+    </div>
+    <div id="menu-nicks" class="nicks">(ningu&eacute;m ainda)</div>
+  </div>
+
+  <div class="block">
+    <h4>&raquo; O chat</h4>
+    <p class="small">
+      Liga&ccedil;&atilde;o directa &agrave; PTnet. Entras como
+      <b>guest</b>, mudas de nick e juntas-te ao <b>#guimaraes</b>.
+    </p>
+    <button id="menu-join" class="side-btn">Entrar no #guimaraes</button>
+  </div>
+
+  <div class="block">
+    <h4>&raquo; Comandos</h4>
+    <ul class="cmds">
+      <li><code>/nick</code> mudar de nick</li>
+      <li><code>/join</code> entrar num canal</li>
+      <li><code>/part</code> sair do canal</li>
+      <li><code>/me</code> ac&ccedil;&atilde;o</li>
+      <li><code>/topic</code> mudar o t&oacute;pico</li>
+      <li><code>!slap</code> dar um estalo</li>
+      <li><code>!op</code> dar op</li>
+      <li><code>!voice</code> dar voice</li>
+    </ul>
+  </div>
+
+  <div class="block webring">
+    <h4>&raquo; Webring</h4>
+    <a href="#" onclick="return false">&laquo; anterior</a> |
+    <a href="#" onclick="return false">seguinte &raquo;</a>
+    <p class="small">Anel PT de P&aacute;ginas Pessoais</p>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ligações de navegação: fazem scroll na página pai (mesma origem)
+  document.querySelectorAll('[data-scroll]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      try {
+        var el = parent.document.getElementById(a.getAttribute('data-scroll'));
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        /* iframe de outra origem — ignora */
+      }
+    });
+  });
+
+  // botão para ir ao chat e focar o input
+  var join = document.getElementById('menu-join');
+  if (join) {
+    join.addEventListener('click', function () {
+      try {
+        var chat = parent.document.getElementById('chat');
+        if (chat) chat.scrollIntoView({ behavior: 'smooth' });
+        var input = parent.document.getElementById('mirc-input');
+        if (input) setTimeout(function () { input.focus(); }, 600);
+      } catch (err) {
+        /* ignora */
+      }
+    });
+  }
+
+  // utilizadores reais na página (via servidor)
+  function poll() {
+    fetch('/online')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var el = document.getElementById('menu-online');
+        if (el) el.textContent = data.online;
+        var gui = (data.channels || []).filter(function (c) { return c.name === '#guimaraes'; })[0];
+        var nicksEl = document.getElementById('menu-nicks');
+        if (nicksEl) {
+          var nicks = (gui && gui.nicks ? gui.nicks : []).filter(function (n) { return n !== 'BotDoJantar'; });
+          nicksEl.innerHTML = nicks.length
+            ? nicks.map(function (n) { return '<span>' + n.replace(/[<>&]/g, '') + '</span>'; }).join('')
+            : '<em>(ningu&eacute;m no canal)</em>';
+        }
+      })
+      .catch(function () {});
+  }
+  poll();
+  setInterval(poll, 4000);
+})();
+</script>
+</body>
+</html>
