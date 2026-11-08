@@ -610,40 +610,58 @@ class IRCServer {
       else this.send(client, `:${BOT_NICK}!bot@${BOT_HOST} NOTICE ${client.nick} :${msg}`);
     };
 
+    // Só se pode aplicar comandos a quem está mesmo no canal.
+    // (o bot conta como existente; nicks inventados são recusados)
+    const inChannel = (nick) => {
+      if (!channel) return false;
+      if (nick.toLowerCase() === BOT_NICK.toLowerCase()) return true;
+      return this.members(channel.toLowerCase()).some(
+        (c) => c.nick && c.nick.toLowerCase() === nick.toLowerCase()
+      );
+    };
+
+    // valida o alvo dos comandos que precisam de um; devolve o nick ou null
+    const requireTarget = () => {
+      if (!channel) {
+        reply('Entra primeiro no canal com /join #guimaraes.');
+        return null;
+      }
+      if (!targetNick) {
+        reply('Diz a quem: ' + cmd + ' <nick>. Escreve /names para ver quem está aqui.');
+        return null;
+      }
+      if (!inChannel(targetNick)) {
+        reply('Não há nenhum ' + targetNick + ' no canal. Escreve /names para ver quem está aqui.');
+        return null;
+      }
+      return targetNick;
+    };
+
     switch (cmd) {
       case '!help':
         reply('Comandos: !slap <nick> | !op <nick> | !voice <nick> | !jantar | !ptnet | !lag');
         break;
 
       case '!slap': {
-        const victim = targetNick || client.nick;
+        const victim = requireTarget();
+        if (!victim) break;
         const things = ['um bacalhau', 'uma tripa de Guimarães', 'um teclado de 1998', 'um disquete de 1.44MB', 'o CD do Windows 98', 'um modem de 56k'];
         const thing = things[Math.floor(Math.random() * things.length)];
-        if (!channel) {
-          reply(`* ${client.nick} dá ${thing} a ${victim}. (entra num canal primeiro, ó pá)`);
-          break;
-        }
         this.action(channel, `* ${client.nick} dá ${thing} a ${victim}`);
         break;
       }
 
       case '!op': {
-        const who = targetNick || client.nick;
-        if (!channel) {
-          reply(`* ${who} agora tem @ (op). Parabéns, não podes fazer nada com isso.`);
-          break;
-        }
+        const who = requireTarget();
+        if (!who) break;
         this.action(channel, `* ${who} agora tem @ (op) em ${channel}`);
         this.applyMode(channel, `${BOT_NICK}!bot@${BOT_HOST}`, '+', 'o', who);
         break;
       }
 
       case '!voice': {
-        const who = targetNick || client.nick;
-        if (!channel) {
-          reply(`* ${who} agora tem + (voice). Fala à vontade.`);
-          break;
-        }
+        const who = requireTarget();
+        if (!who) break;
         this.action(channel, `* ${who} agora tem + (voice) em ${channel}`);
         this.applyMode(channel, `${BOT_NICK}!bot@${BOT_HOST}`, '+', 'v', who);
         break;
