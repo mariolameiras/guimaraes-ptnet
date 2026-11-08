@@ -969,7 +969,14 @@
       var doc = f && f.contentDocument;
       if (!doc || !doc.body) return;
       var o = doc.getElementById('menu-online');
-      if (o) o.textContent = count;
+      if (o) {
+        var s = String(Math.max(0, count | 0));
+        while (s.length < 3) s = '0' + s;
+        if (o.dataset.v !== s) {
+          o.dataset.v = s;
+          o.innerHTML = s.split('').map(function (d) { return '<i>' + d + '</i>'; }).join('');
+        }
+      }
       var n = doc.getElementById('menu-nicks');
       if (n) {
         n.innerHTML = nicks.length

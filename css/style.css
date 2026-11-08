@@ -29,6 +29,7 @@ body {
   margin: 0;
   padding: 0;
   background-color: var(--bg);
+  /* fundo central liso */
   background-image:
     radial-gradient(ellipse 90% 45% at 50% 0%, rgba(58, 92, 150, 0.16), transparent 70%),
     linear-gradient(180deg, #0d1425 0%, #090d1a 100%);
@@ -38,6 +39,35 @@ body {
   font-size: 13px;
   line-height: 1.6;
   min-height: 100vh;
+}
+
+/* laterais: padrão de 1998 (tile.gif) apenas nas margens */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: max(0px, calc((100vw - 1600px) / 2));
+  background-image: url("../img/tile.gif");
+  background-repeat: repeat;
+  background-color: #0a0f1e;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.9;
+}
+body::before {
+  left: 0;
+  border-right: 1px solid #1c2740;
+}
+body::after {
+  right: 0;
+  border-left: 1px solid #1c2740;
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
 }
 
 a {

@@ -87,7 +87,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   // mensagem
   a.send('PRIVMSG #guimaraes :ola malta');
   const got = await b.wait(/PRIVMSG #guimaraes :ola malta/);
-  assert.ok(got.startsWith(':alice!'));
+  // pode ser do histórico (nick!hist@) ou ao vivo (nick!~web@)
+  assert.ok(/^(:alice!~web@|@time=.*:alice!hist@)/.test(got), 'mensagem de alice: ' + got);
   console.log('ok: message delivered');
 
   // comandos do bot

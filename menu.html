@@ -14,6 +14,10 @@
     <span class="sub">IRC Network</span>
   </div>
 
+  <div class="spinner">
+    <img src="img/guimaraes-spin.gif" width="280" height="100" alt="#guimaraes">
+  </div>
+
   <div class="block">
     <h4>&raquo; Navega&ccedil;&atilde;o</h4>
     <ul class="nav">
@@ -25,10 +29,10 @@
 
   <div class="block">
     <h4>&raquo; Online agora</h4>
-    <div class="online">
-      <span class="dot"></span>
-      <b id="menu-online">0</b> pessoas nesta p&aacute;gina
+    <div class="lcd-wrap">
+      <div class="lcd" id="menu-online" aria-label="pessoas online">000</div>
     </div>
+    <div class="lcd-cap">pessoas no #guimaraes</div>
     <div id="menu-nicks" class="nicks">(ningu&eacute;m ainda)</div>
   </div>
 
@@ -39,6 +43,14 @@
       <b>guest</b>, mudas de nick e juntas-te ao <b>#guimaraes</b>.
     </p>
     <button id="menu-join" class="side-btn">Entrar no #guimaraes</button>
+  </div>
+
+  <div class="block">
+    <h4>&raquo; Visitantes</h4>
+    <div class="hits">
+      <div class="lcd" id="menu-hits" aria-label="visitas">0000000</div>
+    </div>
+    <p class="small" style="text-align:center;margin-top:4px;">desde 1997</p>
   </div>
 
   <div class="block block-cmds">
@@ -57,8 +69,11 @@
 
   <div class="block block-webring">
     <h4>&raquo; Webring</h4>
-    <a href="#" onclick="return false">&laquo; anterior</a> |
-    <a href="#" onclick="return false">seguinte &raquo;</a>
+    <div class="ring-links">
+      <a href="#" onclick="return false">&laquo; anterior</a>
+      <a href="#" onclick="return false">aleat&oacute;rio</a>
+      <a href="#" onclick="return false">seguinte &raquo;</a>
+    </div>
     <p class="small">Anel PT de P&aacute;ginas Pessoais</p>
   </div>
 
@@ -96,13 +111,32 @@
     });
   }
 
+  // desenha um número em dígitos LCD separados
+  function lcd(el, value, pad) {
+    if (!el) return;
+    var s = String(Math.max(0, value | 0));
+    while (s.length < pad) s = '0' + s;
+    if (el.dataset.v === s) return;
+    el.dataset.v = s;
+    el.innerHTML = s.split('').map(function (d) { return '<i>' + d + '</i>'; }).join('');
+  }
+
+  // contador de visitas (persistente neste browser, como os da altura)
+  (function hits() {
+    var KEY = 'janta12_hits';
+    var n = 0;
+    try { n = parseInt(localStorage.getItem(KEY) || '0', 10) || 0; } catch (e) {}
+    n += 1;
+    try { localStorage.setItem(KEY, String(n)); } catch (e) {}
+    lcd(document.getElementById('menu-hits'), 48213 + n, 7);
+  })();
+
   // utilizadores reais na página (via servidor)
   function poll() {
     fetch('/online')
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        var el = document.getElementById('menu-online');
-        if (el) el.textContent = data.online;
+        lcd(document.getElementById('menu-online'), data.online, 3);
         var gui = (data.channels || []).filter(function (c) { return c.name === '#guimaraes'; })[0];
         var nicksEl = document.getElementById('menu-nicks');
         if (nicksEl) {
