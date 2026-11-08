@@ -527,7 +527,6 @@
   function showHelp() {
     line('<span class="sys">*** Est&aacute;s ligado &agrave; PTnet como <b>' + esc(state.nick) + '</b>.</span>');
     line('<span class="sys">*** Sugest&atilde;o: muda o teu nick com <b>/nick oTeuNick</b></span>');
-    line('<span class="sys">*** Depois entra no canal da janta com <b>/join #guimaraes</b></span>');
     line('<span class="sys">*** Comandos: /join /part /nick /me /msg /topic /whois /names /list /clear /quit</span>');
     line('<span class="sys">*** Comandos do bot: !slap &lt;nick&gt; &nbsp;!op &lt;nick&gt; &nbsp;!voice &lt;nick&gt; &nbsp;!jantar &nbsp;!help</span>');
   }
