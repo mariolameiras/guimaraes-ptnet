@@ -1,9 +1,9 @@
 'use strict';
-// Gera badges 88x31 clássicos (estilo 1998-2001) renderizados no Chrome headless.
-// Os badges são empilhados verticalmente a partir de (0,0); captura-se o viewport
-// inteiro (sem clip, que é instável) e corta-se cada badge em Node.
+// Gera badges 88x31 autênticos (estilo 1998-2001) como GIFs ANIMADOS.
+// As frames são renderizadas no Chrome headless com a fonte bitmap 'Misc Fixed'
+// a 13px (nítida), empilhadas numa página, cortadas em Node e montadas com ffmpeg.
 //
-//   node tools/make-badges.js  ->  public/img/badge-*.png
+//   node tools/make-badges.js  ->  img/badge-*.gif
 
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
@@ -11,99 +11,179 @@ const os = require('node:os');
 const path = require('node:path');
 const zlib = require('node:zlib');
 
+const BW = 88;
+const BH = 31;
 const PORT = 9392;
-const DSF = 4; // 88x31 -> 352x124 por badge
 const OUT_DIR = path.join(__dirname, '..', 'img');
+const FRAME_DIR = path.join(os.tmpdir(), `badge-frames-${Date.now()}`);
 
-// Cada badge: html do interior + regras CSS completas.
+// ---------------------------------------------------------------------------
+// definição dos badges: cada frame é uma função do índice -> html interno
+
 const badges = [
   {
     id: 'netnow',
-    html: `<div class="l">N</div><div class="r"><span class="s">Netscape</span><span class="b">NOW!</span></div>`,
-    css: `background:#000; border-color:#444;
-      .l { width:26px; height:100%; background:linear-gradient(180deg,#2b6bd4,#0a2f7a); color:#fff; font-size:22px; font-weight:bold; display:flex; align-items:center; justify-content:center; }
-      .r { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; height:100%; }
-      .s { color:#9fc4ff; font-size:8px; }
-      .b { color:#fff; font-size:13px; font-weight:bold; letter-spacing:1px; }`,
+    fps: 2,
+    css: `background:#000;
+      .nbox { width:22px; height:100%; background:linear-gradient(180deg,#2b6bd4,#0a2f7a); color:#fff; display:flex; align-items:center; justify-content:center; }
+      .ntxt { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
+      .ns { color:#9fc4ff; }
+      .now { color:${'${NOW}'}; }`,
+    frames: [
+      { NOW: '#ffe14d' },
+      { NOW: '#443a10' },
+    ],
+    html: (f) => `<div class="nbox">N</div><div class="ntxt"><div class="ns">Netscape</div><div class="now">NOW!</div></div>`,
   },
   {
     id: 'ie5',
-    html: `<span class="s">Internet Explorer</span><span class="b">5.0</span>`,
-    css: `background:linear-gradient(180deg,#3b7de0,#0a2a6e); border-color:#6ba4ff;
-      .s { color:#dce9ff; font-size:7.5px; }
-      .b { color:#fff; font-size:14px; font-weight:bold; font-style:italic; }`,
+    fps: 8,
+    css: `background:linear-gradient(180deg,#3b7de0,#0a2a6e);
+      .txt { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; height:100%; color:#fff; }
+      .shine { position:absolute; top:-2px; bottom:-2px; width:14px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent); transform:skewX(-18deg); }`,
+    frames: [
+      { X: -18 },
+      { X: 22 },
+      { X: 62 },
+      { X: 96 },
+    ],
+    html: (f) => `<div class="txt"><div>Internet</div><div>Explorer 5</div></div><div class="shine" style="left:${f.X}px"></div>`,
   },
   {
     id: 'notepad',
-    html: `<span class="s">Made with</span><span class="b">Notepad</span>`,
-    css: `background:#fff; border-color:#000;
-      .s { color:#333; font-size:8px; }
-      .b { color:#0033aa; font-size:13px; font-weight:bold; }`,
+    fps: 2,
+    css: `background:#fff; color:#000;
+      .txt { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; height:100%; }
+      .np { color:#0033aa; }
+      .cur { color:#000; }`,
+    frames: [
+      { CUR: '_' },
+      { CUR: '\u00a0' },
+    ],
+    html: (f) => `<div class="txt"><div>Made with</div><div class="np">Notepad<span class="cur">${f.CUR}</span></div></div>`,
   },
   {
     id: 'view800',
-    html: `<span class="s">Best Viewed</span><span class="b">800 x 600</span>`,
-    css: `background:linear-gradient(180deg,#1a2340,#0a0f1e); border-color:#3a4a75;
-      .s { color:#8fa3cc; font-size:8px; letter-spacing:1px; }
-      .b { color:#e8d9b0; font-size:13px; font-weight:bold; }`,
+    fps: 4,
+    css: `background:#101a2e;
+      .txt { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; height:100%; }
+      .l1 { color:#8fa3cc; }
+      .l2 { color:#e8d9b0; }
+      .scan { position:absolute; left:0; right:0; height:1px; background:rgba(180,220,255,.5); }`,
+    frames: [
+      { Y: 3 },
+      { Y: 14 },
+      { Y: 25 },
+    ],
+    html: (f) => `<div class="txt"><div class="l1">Best viewed</div><div class="l2">800x600</div></div><div class="scan" style="top:${f.Y}px"></div>`,
   },
   {
     id: 'y2k',
-    html: `<span class="s">compliant</span><span class="b">Y2K</span>`,
-    css: `background:#000; border-color:#c9a90a;
-      .s { color:#c9a90a; font-size:8px; letter-spacing:2px; }
-      .b { color:#ffe14d; font-size:16px; font-weight:bold; font-style:italic; }`,
+    fps: 2,
+    css: `background:#000;
+      .txt { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; height:100%; }
+      .y2k { color:${'${Y2K}'}; }
+      .comp { color:#c9a90a; }`,
+    frames: [
+      { Y2K: '#ffe14d' },
+      { Y2K: '#4a3f0a' },
+    ],
+    html: (f) => `<div class="txt"><div class="y2k">Y2K</div><div class="comp">COMPLIANT</div></div>`,
   },
   {
     id: 'winamp',
-    html: `<span class="s">it really whips</span><span class="b">Winamp</span>`,
-    css: `background:linear-gradient(180deg,#2a2a2a,#000); border-color:#777;
-      .s { color:#9fb98f; font-size:6.5px; font-style:italic; }
-      .b { color:#ff9c2a; font-size:14px; font-weight:bold; letter-spacing:.5px; }`,
+    fps: 8,
+    css: `background:#000;
+      .txt { color:#ff9c2a; height:100%; display:flex; align-items:center; padding-left:5px; }
+      .eq { position:absolute; right:5px; top:4px; bottom:4px; width:34px; display:flex; align-items:flex-end; gap:2px; }
+      .bar { width:5px; background:linear-gradient(180deg,#c8f09a,#3fae5a); }`,
+    frames: [
+      { B: [7, 12, 5, 9] },
+      { B: [11, 6, 13, 7] },
+      { B: [14, 9, 4, 12] },
+      { B: [8, 13, 7, 5] },
+      { B: [5, 10, 14, 8] },
+      { B: [12, 7, 9, 13] },
+    ],
+    html: (f) => `<div class="txt">Winamp</div><div class="eq">${f.B.map((h) => `<div class="bar" style="height:${h}px"></div>`).join('')}</div>`,
   },
   {
     id: 'ptnet',
-    html: `<span class="s">IRC Network</span><span class="b">PTnet</span>`,
-    css: `background:linear-gradient(180deg,#0c2a6e,#061540); border-color:#3a6ac0;
-      .s { color:#9fc4ff; font-size:8px; letter-spacing:1px; }
-      .b { color:#fff; font-size:15px; font-weight:bold; font-style:italic; }`,
+    fps: 6,
+    css: `background:linear-gradient(180deg,#0c2a6e,#061540);
+      .txt { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; height:100%; color:#fff; }
+      .l2 { color:#9fc4ff; }
+      .shine { position:absolute; top:-2px; bottom:-2px; width:14px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent); transform:skewX(-18deg); }`,
+    frames: [
+      { X: -18 },
+      { X: 22 },
+      { X: 62 },
+      { X: 96 },
+    ],
+    html: (f) => `<div class="txt"><div>PTnet</div><div class="l2">IRC Network</div></div><div class="shine" style="left:${f.X}px"></div>`,
   },
   {
     id: 'janta',
-    html: `<span class="s">#guimaraes</span><span class="b">12&ordf; JANTA</span>`,
-    css: `background:linear-gradient(180deg,#1a2340,#0a0f1e); border-color:#c9a95a;
-      .s { color:#c9b26a; font-size:8px; }
-      .b { color:#ffe9b3; font-size:12px; font-weight:bold; letter-spacing:1px; }`,
+    fps: 2,
+    css: `background:linear-gradient(180deg,#1a2340,#0a0f1e);
+      .txt { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; height:100%; }
+      .l1 { color:#c9b26a; }
+      .l2 { color:${'${J2}'}; }
+      .star { position:absolute; top:3px; right:4px; width:4px; height:4px; background:${'${ST}'}; }`,
+    frames: [
+      { J2: '#ffe9b3', ST: '#ffe14d' },
+      { J2: '#e8d9b0', ST: 'transparent' },
+    ],
+    html: (f) => `<div class="txt"><div class="l1">#guimaraes</div><div class="l2">12a JANTA</div></div><div class="star"></div>`,
   },
 ];
 
-// converte ".classe { ... }" em "#b-<id> .classe { ... }"
-function scoped(id, css) {
-  return css.replace(/(^|\n)\s*\.\w+\s*\{/g, (m) => m.replace(/\.(?=\w+\s*\{)/, `#b-${id} .`));
+// substitui os placeholders ${VAR} no css pelos valores da frame e emite
+// regras com escopo: "#f<i> { base }" + "#f<i> .classe { ... }"
+function cssRules(b, f, i) {
+  const css = b.css.replace(/\$\{(\w+)\}/g, (m, k) => f[k]);
+  const parts = css.split(/(?=\.[\w-]+\s*\{)/);
+  const base = parts[0].trim();
+  const out = [`#f${i} { top:${i * BH}px; ${base} }`];
+  for (let p = 1; p < parts.length; p++) {
+    out.push(`#f${i} ${parts[p].trim()}`);
+  }
+  return out.join('\n');
 }
 
-const BW = 88;
-const BH = 31;
-const TOTAL_H = BH * badges.length;
+// ---------------------------------------------------------------------------
+// página: todas as frames de todos os badges empilhadas
+
+const allFrames = [];
+for (const b of badges) {
+  for (let i = 0; i < b.frames.length; i++) {
+    allFrames.push({ badge: b, frame: b.frames[i], idx: i });
+  }
+}
 
 const page = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { width:${BW}px; height:${TOTAL_H}px; overflow:hidden; }
-  body { background:#0a0a0a; font-family:'Liberation Sans','DejaVu Sans',Arial,sans-serif; }
+  html, body { width:${BW}px; height:${allFrames.length * BH}px; overflow:hidden; }
+  body { background:#0a0a0a; }
   .badge {
-    width:${BW}px; height:${BH}px; border:1px solid #555; overflow:hidden;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:1px; color:#fff; line-height:1;
+    position:absolute; left:0; width:${BW}px; height:${BH}px; overflow:hidden;
+    display:flex; color:#fff; font-family:'Misc Fixed','Fixed',monospace;
+    font-size:13px; line-height:13px; white-space:nowrap;
+    border:1px solid #000;
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,.35), inset -1px -1px 0 rgba(0,0,0,.5);
   }
-  .badge .s { display:block; }
-  .badge .b { display:block; }
-  ${badges.map((b) => `#b-${b.id} { ${scoped(b.id, b.css)} }`).join('\n')}
+  .badge .txt, .badge .ntxt { position:relative; }
+${allFrames
+  .map(
+    (af, i) => cssRules(af.badge, af.frame, i)
+  )
+  .join('\n')}
 </style></head><body>
-${badges.map((b, i) => `<div class="badge" id="b-${b.id}" style="position:absolute;left:0;top:${i * BH}px">${b.html}</div>`).join('\n')}
+${allFrames.map((af, i) => `<div class="badge" id="f${i}">${af.badge.html(af.frame)}</div>`).join('\n')}
 </body></html>`;
 
 // ---------------------------------------------------------------------------
-// PNG: leitura (assumindo filtros simples) + escrita
+// PNG helpers (leitura com unfilter + escrita)
 
 function crc32(buf) {
   const table = crc32.table || (crc32.table = (() => {
@@ -140,16 +220,14 @@ function writePNG(file, rgb, w, h) {
   ihdr.writeUInt32BE(h, 4);
   ihdr[8] = 8;
   ihdr[9] = 2;
-  const png = Buffer.concat([
+  fs.writeFileSync(file, Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk('IHDR', ihdr),
     chunk('IDAT', zlib.deflateSync(raw, { level: 9 })),
     chunk('IEND', Buffer.alloc(0)),
-  ]);
-  fs.writeFileSync(file, png);
+  ]));
 }
 
-// lê um PNG truecolor não-interlaçado e devolve RGB + dimensões
 function readPNG(buf) {
   let o = 8;
   let idat = [];
@@ -202,10 +280,16 @@ function readPNG(buf) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const run = (cmd, args) =>
+  new Promise((res, rej) => {
+    const p = spawn(cmd, args, { stdio: 'ignore' });
+    p.on('close', (code) => (code === 0 ? res() : rej(new Error(cmd + ' exit ' + code))));
+  });
 
 (async () => {
   const tmp = path.join(os.tmpdir(), `badges-${Date.now()}.html`);
   fs.writeFileSync(tmp, page);
+  fs.mkdirSync(FRAME_DIR, { recursive: true });
 
   const chrome = spawn('google-chrome-stable', [
     '--headless=new',
@@ -214,7 +298,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     '--disable-gpu',
     '--hide-scrollbars',
     '--force-device-scale-factor=1',
-    `--user-data-dir=${os.tmpdir()}/badge-chrome-profile-${Date.now()}`,
+    `--user-data-dir=${os.tmpdir()}/badge-gif-profile-${Date.now()}`,
     'about:blank',
   ], { stdio: 'ignore' });
 
@@ -247,37 +331,38 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
 
   await cmd('Page.enable');
-  await cmd('Emulation.setDeviceMetricsOverride', { width: BW, height: TOTAL_H, deviceScaleFactor: DSF, mobile: false });
+  await cmd('Emulation.setDeviceMetricsOverride', { width: BW, height: allFrames.length * BH, deviceScaleFactor: 1, mobile: false });
   await cmd('Page.navigate', { url: 'file://' + tmp });
   await sleep(1000);
 
-  // screenshot completa do viewport (sem clip)
   const shot = await cmd('Page.captureScreenshot', { format: 'png' });
-  const full = Buffer.from(shot.result.data, 'base64');
-  const { rgb, w, h } = readPNG(full);
-  console.log('captura:', w + 'x' + h, '(esperado', BW * DSF + 'x' + TOTAL_H * DSF + ')');
-  if (w !== BW * DSF || h !== TOTAL_H * DSF) throw new Error('dimensões inesperadas');
+  const { rgb, w, h } = readPNG(Buffer.from(shot.result.data, 'base64'));
+  console.log('captura:', w + 'x' + h);
+  if (w !== BW || h !== allFrames.length * BH) throw new Error('dimensões inesperadas');
 
-  // apaga badges antigos que já não são usados
+  // corta as frames e grava por badge
   fs.mkdirSync(OUT_DIR, { recursive: true });
-  for (const f of fs.readdirSync(OUT_DIR)) {
-    if (f.startsWith('badge-') && !badges.some((b) => `badge-${b.id}.png` === f)) {
-      fs.unlinkSync(path.join(OUT_DIR, f));
-      console.log('removed', f);
+  for (const b of badges) {
+    let n = 0;
+    for (let i = 0; i < allFrames.length; i++) {
+      if (allFrames[i].badge !== b) continue;
+      const out = Buffer.alloc(BW * BH * 3);
+      for (let y = 0; y < BH; y++) {
+        const src = (i * BH + y) * BW * 3;
+        rgb.copy(out, y * BW * 3, src, src + BW * 3);
+      }
+      writePNG(path.join(FRAME_DIR, `${b.id}_${String(n).padStart(2, '0')}.png`), out, BW, BH);
+      n++;
     }
-  }
-
-  // corta cada badge
-  const sliceH = BH * DSF;
-  for (let i = 0; i < badges.length; i++) {
-    const out = Buffer.alloc(BW * DSF * sliceH * 3);
-    for (let y = 0; y < sliceH; y++) {
-      const src = (i * sliceH + y) * (BW * DSF) * 3;
-      rgb.copy(out, y * (BW * DSF) * 3, src, src + BW * DSF * 3);
-    }
-    const file = path.join(OUT_DIR, `badge-${badges[i].id}.png`);
-    writePNG(file, out, BW * DSF, sliceH);
-    console.log('badge', badges[i].id);
+    // monta o GIF com ffmpeg (paleta exacta, sem dithering — pixel art)
+    await run('ffmpeg', [
+      '-y', '-framerate', String(b.fps),
+      '-i', path.join(FRAME_DIR, `${b.id}_%02d.png`),
+      '-vf', 'split[a][b];[a]palettegen=max_colors=64[p];[b][p]paletteuse=dither=none',
+      '-loop', '0',
+      path.join(OUT_DIR, `badge-${b.id}.gif`),
+    ]);
+    console.log('gif badge-' + b.id + '.gif (' + n + ' frames @ ' + b.fps + 'fps)');
   }
 
   ws.close();

@@ -530,13 +530,10 @@ a:hover {
 .badges img {
   width: 88px;
   height: 31px;
-  border: 1px solid #2c3752;
-  opacity: 0.95;
-  image-rendering: auto;
+  image-rendering: pixelated;
 }
 .badges img:hover {
-  opacity: 1;
-  border-color: #d99a80;
+  filter: brightness(1.15);
 }
 .copy {
   font-size: 11px;
@@ -609,6 +606,38 @@ a:hover {
 }
 .popup button:active {
   border-style: inset;
+}
+
+/* --------------------------------------------------------------------------
+   mIRC em fullscreen (mobile): tocar na janela abre overlay de ecrã inteiro,
+   com o input sempre visível acima do teclado (100dvh).
+   -------------------------------------------------------------------------- */
+
+.mirc.fs {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+.mirc.fs .mirc-body {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+.mirc.fs .mirc-help {
+  display: none;
+}
+body.fs-open {
+  overflow: hidden;
+}
+#mirc-max {
+  display: none;
 }
 
 /* --------------------------------------------------------------------------
@@ -686,6 +715,9 @@ a:hover {
     height: 20px;
     font-size: 10px;
     line-height: 16px;
+  }
+  #mirc-max {
+    display: inline-block;
   }
   .mirc-body {
     height: 52vh;

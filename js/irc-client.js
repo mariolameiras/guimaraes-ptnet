@@ -20,7 +20,7 @@
     netStatus: $('net-status'),
     netDot: $('net-dot'),
     lag: $('lag-panel'),
-    mirc: $('chat'),
+    mirc: $('mirc-win'),
     sound: $('mirc-sound'),
   };
 
@@ -913,11 +913,53 @@
     });
   }
 
+  // fullscreen em mobile: tocar na janela (ou no botão maximizar) abre o chat
+  // em ecrã inteiro, com o input sempre visível acima do teclado
+  var isMobile = function () {
+    return window.matchMedia('(max-width: 720px)').matches;
+  };
+  var fsOpen = false;
+
+  function toggleFs(force) {
+    var want = force !== undefined ? force : !fsOpen;
+    if (want === fsOpen) return;
+    fsOpen = want;
+    els.mirc.classList.toggle('fs', fsOpen);
+    document.body.classList.toggle('fs-open', fsOpen);
+    if (fsOpen) {
+      els.text.scrollTop = els.text.scrollHeight;
+      setTimeout(function () {
+        els.input.focus();
+      }, 80);
+    }
+  }
+
+  var maxBtn = $('mirc-max');
+  if (maxBtn) {
+    maxBtn.addEventListener('click', function () {
+      toggleFs();
+    });
+  }
+
+  var titlebar = $('mirc-titlebar');
+  if (titlebar) {
+    titlebar.addEventListener('click', function (e) {
+      if (!isMobile()) return;
+      if (e.target.closest('button')) return; // os botões tratam-se a si próprios
+      toggleFs();
+    });
+  }
+
+  $('mirc-close').addEventListener('click', function () {
+    if (fsOpen) {
+      toggleFs(false);
+      return;
+    }
+    sys('*** O mIRC fica aberto. Algu&eacute;m tem de tomar conta do canal.');
+  });
+
   $('mirc-min').addEventListener('click', function () {
     els.mirc.classList.toggle('hidden-body');
-  });
-  $('mirc-close').addEventListener('click', function () {
-    sys('*** O mIRC fica aberto. Algu&eacute;m tem de tomar conta do canal.');
   });
 
   // sincroniza o contador e nicks com o menu lateral (iframe, mesma origem)
