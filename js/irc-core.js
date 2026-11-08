@@ -64,14 +64,32 @@ function randomId() {
 // Server
 
 class IRCServer {
-  constructor() {
+  constructor(opts) {
+    opts = opts || {};
     this.clients = new Set();
     this.msgCount = 0;
     this.startedAt = now();
     // modos por canal: '#guimaraes' -> Map<nickLower, {op, voice}>
     this.channelModes = new Map();
-    // histórico real por canal: '#guimaraes' -> [{ts, nick, kind, text}]
+    // histórico por canal: '#guimaraes' -> [{ts, nick, kind, text}]
     this.history = new Map();
+    // quantas linhas se guardam (as últimas) e quantas se mostram a quem entra
+    this.historyLimit = opts.historyLimit || 500;
+    this.replayLimit = opts.replayLimit || 50;
+    // store opcional para persistir: { load() -> Promise<Map>, append(key, entry) }
+    this.store = opts.store || null;
+    this.ready = this.store
+      ? Promise.resolve(this.store.load()).then(
+          (loaded) => {
+            if (loaded && loaded.forEach) {
+              loaded.forEach((entries, key) => {
+                if (Array.isArray(entries) && entries.length) this.history.set(key, entries.slice(-this.historyLimit));
+              });
+            }
+          },
+          () => {}
+        )
+      : Promise.resolve();
   }
 
   // -- modos de canal ---------------------------------------------------------
@@ -115,8 +133,15 @@ class IRCServer {
     if (!this.history.has(key)) this.history.set(key, []);
     const h = this.history.get(key);
     h.push(entry);
-    const LIMIT = 80;
-    if (h.length > LIMIT) h.splice(0, h.length - LIMIT);
+    if (h.length > this.historyLimit) h.splice(0, h.length - this.historyLimit);
+    // persiste (sem bloquear o envio das mensagens)
+    if (this.store) {
+      try {
+        this.store.append(key, entry);
+      } catch (e) {
+        /* a persistência nunca pode partir o chat */
+      }
+    }
   }
 
   // -- connection lifecycle -------------------------------------------------
@@ -365,9 +390,12 @@ class IRCServer {
     this.names(client, channel);
 
     // histórico real do canal (com timestamps, ao estilo IRCv3 server-time)
-    const hist = this.history.get(key) || [];
+    const allHist = this.history.get(key) || [];
+    const hist = allHist.slice(-this.replayLimit);
     if (hist.length) {
-      this.send(client, `:${SERVER_NAME} NOTICE ${client.nick} :*** Hist\u00f3rico do ${channel} \u2014 \u00faltimas ${hist.length} linha${hist.length === 1 ? '' : 's'}`);
+      const total = allHist.length;
+      const older = total > hist.length ? ` (de ${total} guardadas)` : '';
+      this.send(client, `:${SERVER_NAME} NOTICE ${client.nick} :*** Hist\u00f3rico do ${channel} \u2014 \u00faltimas ${hist.length} linha${hist.length === 1 ? '' : 's'}${older}`);
       for (const h of hist) {
         const tag = `@time=${new Date(h.ts).toISOString()}`;
         const uh = `${h.nick}!${h.user || '~web'}@${h.host || 'dialup-ptnet'}`;

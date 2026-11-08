@@ -220,7 +220,9 @@
   // os restantes ligam-se directamente por WebRTC data channels (PeerJS).
 
   var transport = { kind: null, send: function () {} };
-  var PEER_ROOM = 'janta12-guimaraes-ptnet';
+  // O sufixo muda quando o protocolo muda: evita ficar preso a um anfitrião
+  // órfão registado no servidor de sinalização com código antigo.
+  var PEER_ROOM = 'janta12-guimaraes-ptnet-v2';
   // registo de diagnóstico (window.__p2pLog)
   function plog(msg) {
     (window.__p2pLog ||= []).push(new Date().toISOString().slice(11, 19) + ' ' + msg);
@@ -361,7 +363,32 @@
   function becomeHost(peer) {
     transport.kind = 'p2p-host';
     plog('becomeHost: servidor IRC embebido a arrancar');
-    var irc = new window.IRCCore.IRCServer();
+
+    // histórico: Firebase (nuvem, partilhado) com IndexedDB como reserva
+    var store = null;
+    var fb = window.FIREBASE_CONFIG;
+    if (fb && fb.enabled && window.IRCHistoryStoreFirebase) {
+      try {
+        store = window.IRCHistoryStoreFirebase.open({
+          databaseURL: fb.databaseURL,
+          channel: fb.channel || CHANNEL,
+          limit: fb.limit || 500,
+        });
+        plog('becomeHost: histórico na nuvem (firebase)');
+      } catch (e) {
+        store = null;
+      }
+    }
+    if (!store && window.IRCHistoryStore) {
+      try {
+        store = window.IRCHistoryStore.open({ limit: 500 });
+        plog('becomeHost: histórico local (indexeddb)');
+      } catch (e) {
+        store = null;
+      }
+    }
+
+    var irc = new window.IRCCore.IRCServer({ store: store, historyLimit: 500, replayLimit: 50 });
 
     // o meu próprio cliente liga por loopback ao servidor embebido
     var a = makeWsLike(); // lado do servidor
@@ -400,7 +427,10 @@
       // (enviar antes do 'open' quebra a negociação WebRTC)
       conn.on('open', function () {
         plog('becomeHost: canal aberto');
-        irc.addConnection(ws);
+        // espera pelo histórico antes de servir, para o replay estar completo
+        irc.ready.then(function () {
+          irc.addConnection(ws);
+        });
       });
       conn.on('data', function (d) {
         ws.emit('message', String(d));
@@ -421,7 +451,12 @@
     });
 
     sys('*** [modo p2p] és o anfitri&atilde;o do canal. Se sa&iacute;res, outro visitante toma o lugar.');
-    registerWithServer();
+    // liga o meu cliente só depois do histórico carregado
+    irc.ready.then(function () {
+      var n = (irc.history.get(CHANNEL.toLowerCase()) || []).length;
+      if (n) sys('*** Hist&oacute;rico carregado: ' + n + ' linha' + (n === 1 ? '' : 's') + '.');
+      registerWithServer();
+    });
   }
 
   function becomeClient() {

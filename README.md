@@ -61,6 +61,40 @@ NickServ, etc.
   `/who`, `/whois`, `/list`, `/topic`, `/clear`, `/quit`, `/help`.
 - Histórico com seta para cima, som opcional, minimizar a janela.
 
+## Histórico persistente (Firebase)
+
+O histórico do `#guimaraes` é guardado no **Firebase Realtime Database**, por isso
+sobrevive a todos saírem, a recarregar a página e a mudar de anfitrião.
+
+- Configuração: `js/firebase-config.js` (a `apiKey` é pública por design)
+- Store: `js/history-store-firebase.js` (REST, sem SDK)
+- Reserva: se o Firebase falhar, cai para IndexedDB (`js/history-store.js`)
+- No servidor Node: `server/history-store.js` grava em `data/history.json`
+
+### Regras de segurança (aplicar na consola)
+
+Firebase Console → Realtime Database → **Rules** → colar → **Publish**:
+
+```json
+{
+  "rules": {
+    "channels": {
+      "$channel": {
+        "messages": {
+          "$msg": {
+            ".read": true,
+            ".write": "!data.exists() && newData.hasChildren(['ts','nick','kind'])",
+            ".validate": "newData.child('ts').isNumber() && newData.child('nick').isString() && newData.child('nick').val().length <= 16 && newData.child('text').isString() && newData.child('text').val().length <= 450"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Leitura pública, escrita só de mensagens novas (não se apaga nem altera o passado).
+
 ## GitHub Pages
 
 O site estático vive na raiz do repositório (`index.html`, `menu.html`,

@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { IRCServer } = require('../js/irc-core.js');
+const { createFileStore } = require('./history-store');
 
 const PORT = Number(process.argv[2] || process.env.PORT || 8080);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -30,7 +31,16 @@ const MIME = {
   '.midi': 'audio/midi',
 };
 
-const irc = new IRCServer();
+const historyStore = createFileStore(path.join(__dirname, '..', 'data', 'history.json'), { limit: 500 });
+const irc = new IRCServer({ store: historyStore, historyLimit: 500, replayLimit: 50 });
+
+// gravar o histórico antes de sair
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => {
+    historyStore.close();
+    process.exit(0);
+  });
+}
 
 // ---------------------------------------------------------------------------
 // HTTP
