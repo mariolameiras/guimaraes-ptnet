@@ -123,6 +123,7 @@ tools/test-irc.js      teste de integração do protocolo
 tools/test-browser.js  smoke test em Chrome headless + screenshots
 ```
 
+
 ## Testes
 
 ```bash
