@@ -4,7 +4,7 @@
    ========================================================================== */
 
 :root {
-  --bg: #0a0f1e;
+  --bg: #000;
   --bg-2: #0d1425;
   --line: #26324f;
   --line-soft: #1c2740;
@@ -28,41 +28,13 @@ html {
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--bg);
-  /* fundo central liso */
-  background-image:
-    radial-gradient(ellipse 90% 45% at 50% 0%, rgba(58, 92, 150, 0.16), transparent 70%),
-    linear-gradient(180deg, #0d1425 0%, #090d1a 100%);
   background-attachment: fixed;
   color: var(--text);
   font-family: Verdana, Tahoma, Arial, Helvetica, sans-serif;
   font-size: 13px;
   line-height: 1.6;
-  min-height: 100vh;
-}
-
-/* laterais: padrão de 1998 (tile.gif) apenas nas margens */
-body::before,
-body::after {
-  content: "";
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  width: max(0px, calc((100vw - 1600px) / 2));
-  background-image: url("../img/tile.gif");
-  background-repeat: repeat;
-  background-color: #0a0f1e;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.9;
-}
-body::before {
-  left: 0;
-  border-right: 1px solid #1c2740;
-}
-body::after {
-  right: 0;
-  border-left: 1px solid #1c2740;
+  min-height: 100vh;  
+  background: url("../img/stars.jpg");
 }
 
 .shell {
@@ -97,41 +69,68 @@ a:hover {
   background-color: #070b14;
   color: #7d8aa8;
   font-family: "Courier New", Courier, monospace;
-  font-size: 11px;
-  padding: 4px 16px;
-  border-bottom: 1px solid var(--line-soft);
-  letter-spacing: 0.3px;
+  font-size: 13px;
+  padding: 10px 0;
+  border: 1px solid var(--line-soft);
+}
+
+.arrow {
+  height: 10px;
+  width: auto;
 }
 
 .site-head {
-  line-height: 0;
-  background: #05080f;
-  border-bottom: 1px solid var(--line);
-}
-.site-head img {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 380px;
-  object-fit: cover;
+  text-align: center;
+  background: url("../img/bg.jpg");
+  padding-bottom: 20px;
+
+  > div {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+
+    > span {
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--title);
+
+      &:not(:last-child)::after {
+        content: "•";
+        margin-left: 10px;
+      }
+    }
+  }
 }
 
 .marquee {
-  background-color: #070b14;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   color: var(--title);
   font-family: "Courier New", Courier, monospace;
-  font-size: 12px;
-  letter-spacing: 0.6px;
-  border-bottom: 1px solid var(--line-soft);
-  padding: 5px 0;
+  font-size: 20px; 
+  background: var(--bg);
+}
+
+.marquee img {
+ width: 40px
+}
+.marquee-text {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
 }
-.marquee span {
-  display: inline-block;
+.marquee-text > span {
+  flex: none;
   padding-left: 100%;
   animation: marquee 34s linear infinite;
 }
+
 @keyframes marquee {
   to {
     transform: translateX(-100%);
@@ -146,6 +145,8 @@ a:hover {
   display: flex;
   flex: 1;
   align-items: stretch;
+  background: var(--bg);
+  border: 1px solid var(--line-soft);
 }
 
 .menu-col {
@@ -595,7 +596,7 @@ a:hover {
   border: 1px solid #9a9a94;
   border-radius: 2px;
   font-family: Tahoma, Verdana, sans-serif;
-  font-size: 11px;
+  font-size: 14px;
   color: #000;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }

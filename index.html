@@ -15,7 +15,8 @@
 
   <!-- barra de estado tipo browser -->
   <div class="topbar">
-    <span class="blink">&#9679;</span> Documento: Conclu&iacute;do &nbsp;|&nbsp;
+    <img src="img/arrow.gif" class="arrow" alt="">
+    Documento: Conclu&iacute;do &nbsp;|&nbsp;
     PTnet: 100% &nbsp;|&nbsp;
     <span id="clock">00:00:00</span> &nbsp;|&nbsp;
     <span class="blink">NOVO!</span>
@@ -23,15 +24,24 @@
 
   <!-- O BANNER -->
   <header class="site-head">
-    <picture>
-      <source media="(max-width: 720px)" srcset="img/banner-mobile.png">
-      <img src="img/banner.png" width="1600" height="380" alt="12ª Janta do #guimaraes da PTnet">
-    </picture>
+    <img id="banner" src="img/banner.png" alt="12ª Janta do #guimaraes da PTnet">
+    <div>
+      <span>2026/12/19</span>
+      <span>20:30</span>
+      <span>Restaurante O Pinguim, Guimarães</span>
+    </div>
   </header>
 
   <div class="marquee">
-    <span>*** BEM-VINDOS &Agrave; 12&ordf; JANTA DO #GUIMARAES DA PTNET *** 19 DE DEZEMBRO DE 2026 *** RESTAURANTE O PINGUIM, GUIMAR&Atilde;ES *** O CHAT EST&Aacute; NO FIM DA P&Aacute;GINA *** N&Atilde;O TE ESQUE&Ccedil;AS DE MUDAR O NICK *** /join #guimaraes ***</span>
+    <img src="img/flames.gif" class="left-flame">
+    <div class="marquee-text"><span>
+      *** BEM-VINDOS &Agrave; 12&ordf; JANTA DO #GUIMARAES DA PTNET *** 19 DE DEZEMBRO DE 2026 *** 
+      RESTAURANTE O PINGUIM, GUIMAR&Atilde;ES *** O CHAT EST&Aacute; NO FIM DA P&Aacute;GINA *** 
+      N&Atilde;O TE ESQUE&Ccedil;AS DE MUDAR O NICK *** /join #guimaraes ***
+    </span></div>
+    <img src="img/flames.gif" class="right-flame">
   </div>
+
 
   <div class="page">
 
@@ -45,7 +55,9 @@
 
       <!-- ============== A JANTA ============== -->
       <section class="sec" id="janta">
-        <h2 class="sec-h">A Janta</h2>
+        <h2 class="sec-h">
+          A Janta
+        </h2>
         <div class="sec-body">
           <p class="lead">
             &Eacute; com enorme prazer que o pessoal do <b>#guimaraes</b> anuncia a
@@ -63,20 +75,6 @@
             <b>AVISO:</b> confirma a presen&ccedil;a no canal <b>#guimaraes</b>.
             Quem n&atilde;o aparecer na lista, come &agrave; porta.
           </p>
-        </div>
-      </section>
-
-      <!-- ============== LINKS ============== -->
-      <section class="sec" id="links">
-        <h2 class="sec-h">Links recomendados</h2>
-        <div class="sec-body">
-          <ul class="links">
-            <li><a href="https://www.ptnet.org" target="_blank" rel="noopener">PTnet</a> &mdash; a maior rede de IRC Portuguesa, desde 1997</li>
-            <li><a href="https://www.mirc.com" target="_blank" rel="noopener">mIRC</a> &mdash; o melhor cliente de IRC do mundo</li>
-            <li><a href="https://pt.wikipedia.org/wiki/Guimar%C3%A3es" target="_blank" rel="noopener">Guimar&atilde;es</a> &mdash; a cidade ber&ccedil;o</li>
-            <li><a href="https://www.winamp.com" target="_blank" rel="noopener">Winamp</a> &mdash; it really whips the llama's ass</li>
-            <li><a href="#chat">O chat</a> &mdash; est&aacute; l&aacute; em baixo, no fim da p&aacute;gina</li>
-          </ul>
         </div>
       </section>
 
@@ -144,6 +142,20 @@
           O <b>@BotDoJantar</b> &eacute; operador e responde aos comandos.
           S&oacute; aparecem pessoas que est&atilde;o realmente nesta p&aacute;gina.
         </p>
+      </section>
+
+
+      <!-- ============== LINKS ============== -->
+      <section class="sec" id="links">
+        <h2 class="sec-h">Links recomendados</h2>
+        <div class="sec-body">
+          <ul class="links">
+            <li><a href="https://www.ptnet.org" target="_blank" rel="noopener">PTnet</a> &mdash; a maior rede de IRC Portuguesa, desde 1997</li>
+            <li><a href="https://www.mirc.com" target="_blank" rel="noopener">mIRC</a> &mdash; o melhor cliente de IRC do mundo</li>
+            <li><a href="https://pt.wikipedia.org/wiki/Guimar%C3%A3es" target="_blank" rel="noopener">Guimar&atilde;es</a> &mdash; a cidade ber&ccedil;o</li>
+            <li><a href="https://www.winamp.com" target="_blank" rel="noopener">Winamp</a> &mdash; it really whips the llama's ass</li>
+          </ul>
+        </div>
       </section>
 
     </main>

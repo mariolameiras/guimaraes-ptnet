@@ -163,19 +163,6 @@ a:hover {
   border-color: #3a2a10;
   text-shadow: 0 0 5px rgba(255, 180, 58, 0.7);
 }
-
-/* webring: uma liga&ccedil;&atilde;o por linha */
-.ring-links a {
-  display: block;
-  text-align: center;
-  padding: 2px 4px;
-  font-size: 10px;
-}
-.ring-links a::before {
-  content: "\00bb ";
-  color: #e8795a;
-}
-
 .nicks span {
   display: inline-block;
   background: #16203a;
